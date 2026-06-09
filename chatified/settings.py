@@ -27,6 +27,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+#REST Frameworks
+REST_FRAMEWORKS = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_frameworks.authentication.TokenAuthentication',
+        (...)
+    ),
+}
+
 
 # Application definition
 
@@ -37,6 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'djoser',
 ]
 
 MIDDLEWARE = [
