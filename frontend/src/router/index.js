@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import Chat from '@/components/Chat'
-import UserAuth from "@/component/UserAuth"
+import UserAuth from '@/components/UserAuth'
 
 Vue.use(Router)
 
@@ -12,7 +12,6 @@ const router = new Router({
       name: 'Chat',
       component: Chat
     },
-
     {
       path: '/auth',
       name: 'UserAuth',
@@ -22,8 +21,7 @@ const router = new Router({
 })
 
 router.beforeEach((to, from, next) => {
-  if (sessionStorage.getItem('authToken') === null || to.path === '/auth')
-  {
+  if (sessionStorage.getItem('authToken') === null || to.path === '/auth') {
     next()
   } else {
     next('auth')

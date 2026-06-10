@@ -18,31 +18,33 @@
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active" id="signup"
                     role="tabpanel" aria-labelledby="signin-tab">
-                    <form @submit.prevent="signUp">
-                        <div class="form-group">
-                            <input v-model="email" type="email" class="form-control"
-                            id="email" placeholder="Email Address" required>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group col-md-6">
-                                <input v-model="username", type="username" class="form-control"
-                                id="username" placeholder="Username" required>
-                            <div class="form-group col-md-6">
-                                <input v-model="password" type="password" class="form-control"
-                                id="password" placeholder="Password" required>
+                        <form @submit.prevent="signUp">
+                            <div class="form-group">
+                                <input v-model="email" type="email" class="form-control"
+                                id="email" placeholder="Email Address" required>
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox"
-                                id="toc" required>
-                                <label class="form-check-label" for="gridCheck">
-                                    Accept terms and Conditions
-                                </label> 
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <input v-model="username" type="username" class="form-control"
+                                    id="username" placeholder="Username" required>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <input v-model="password" type="password" class="form-control"
+                                    id="password" placeholder="Password" required>
+                                </div>
                             </div>
-                        </div>
-                        <button type="submit" class="btn btn-block btn-primary">Sign Up</button>
-                    </form>
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                    id="toc" required>
+                                    <label class="form-check-label" for="gridCheck">
+                                        Accept terms and Conditions
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-block btn-primary">Sign Up</button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="tab-pane fade" id="signin" role="tabpanel"
@@ -53,7 +55,7 @@
                             id="password" placeholder="Password" required>
                         </div>
 
-                        <button type="submit" class="btn btn-black btn-primary">Sign In</button?>
+                        <button type="submit" class="btn btn-black btn-primary">Sign In</button>
                     </form>
                 </div>
             </div>
@@ -62,15 +64,15 @@
 </template>
 
 <script>
-    const $ = window.jQuery // JQuery
-
-    export default {
-        data() {
-            return {
-                email: '', username: '', password: ''
-            }
-        }
+export default {
+  data () {
+    return {
+      email: '',
+      username: '',
+      password: ''
     }
+  }
+}
 </script>
 
 <style scoped>
