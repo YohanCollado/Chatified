@@ -10,6 +10,11 @@ from rest_framework import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
 
+# URL's for the chat app
+from django.contrib import admin
+from django.urls import path
+from . import views
+
 class ChatSessionView(APIView):
     # Manage chat sessions
 
@@ -48,4 +53,61 @@ class ChatSessionView(APIView):
         owner = deserialize_user(owner)
         members = [
             deserialize_user(chat_session.users)
-        ]            
+            for chat_session in chat_session.member.all()
+        ]
+
+        members.insert(0, owner)
+
+        return Response({
+            'status': 'SUCCESS', 'members': members,
+            'message': '%s joined the chat' % user.username,
+            'user': deserialize_user(user)
+        })
+    
+class ChatSessionMessageView(APIView):
+    # Create/Get chat session messages
+
+    permissions_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        # return all messages in a chat session
+        uri = kwargs['uri']
+
+        chat_session = ChatSession.objects.get(uri=uri)
+        messages = [chat_session_message.to_json()
+        
+        for chat_session_message in chat_session.message.all()]
+        return Response({
+            'id': chat_session.id,
+            'uri': chat_session.uri,
+            'messages': messages
+        }) 
+    
+
+    def post(self, request, *args, **kwargs):
+        # create a new message in a chat session
+
+        uri = kwargs['uri']
+        message = request.data['message']
+
+        user = request.user
+        chat_session = ChatSession.objects.get(uri=uri)
+
+        ChatSessionMessage.object.create(
+            user = user,
+            chat_session = chat_session,
+            message = message
+        )
+
+        return Response ({
+            'status': 'SUCCESS', 
+            'uri': chat_session.uri,
+            'messages': message,
+            'user': deserialize_user(user)
+        })
+
+urlpatterns = [
+    path('chats/', views.ChatSessionView.as_view()),
+    path('chats/<uri>/', views.ChatSessionView.as_view()),
+    path('chats/<uri>/messages/', views.ChatSessionView.as_view())
+]
