@@ -14,6 +14,11 @@ export default new Router({
       path: '/chats',
       name: 'Chat',
       component: Chat
+    },
+    {
+      path: '/chats/:uri',
+      name: 'ChatSession',
+      component: Chat
     }
   ]
 })

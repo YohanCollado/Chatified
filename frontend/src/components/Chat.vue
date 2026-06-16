@@ -113,10 +113,15 @@ export default {
 
   created () {
     this.username = sessionStorage.getItem('username')
+    this.sessionStarted = Boolean(this.$route.params.uri)
 
     $.ajaxSetup({
       beforeSend: function (xhr) {
-        xhr.setRequestHeader('Authorization', `JWT $[sessionStorage.getItem('authToken')]`)
+        const authToken = sessionStorage.getItem('authToken')
+
+        if (authToken) {
+          xhr.setRequestHeader('Authorization', `Token ${authToken}`)
+        }
       }
     })
   },
@@ -126,7 +131,7 @@ export default {
       $.post('http://localhost:8000/api/chats/', (data) => {
         alert('A new session has been created, you will now be redirected. Be patient')
         this.sessionStarted = true
-        this.$router.push('/chats/chat_url')
+        this.$router.push(`/chats/${data.uri}`)
       })
         .fail((response) => {
           alert(response.responseText)

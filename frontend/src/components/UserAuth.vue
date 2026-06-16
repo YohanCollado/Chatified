@@ -49,10 +49,14 @@
 
                 <div class="tab-pane fade" id="signin" role="tabpanel"
                 aria-labelledby="signin-tab">
-                    <form @submit.prevent="SignIn">
+                    <form @submit.prevent="signIn">
                         <div class="form-group">
-                            <input v-model="usernaname" type="text" class="form-control"
-                            id="password" placeholder="Password" required>
+                            <input v-model="username" type="text" class="form-control"
+                            id="signin-username" placeholder="Username" required>
+                        </div>
+                        <div class="form-group">
+                            <input v-model="password" type="password" class="form-control"
+                            id="signin-password" placeholder="Password" required>
                         </div>
 
                         <button type="submit" class="btn btn-black btn-primary">Sign In</button>
@@ -79,7 +83,7 @@ export default {
       $.post('http://localhost:8000/auth/users/create/',
         this.$data, (data) => {
           alert('Your account has been created. You will be signed in automatically')
-          this.SignIn()
+          this.signIn()
         }).fail((response) => {
         alert(response.responseText)
       })

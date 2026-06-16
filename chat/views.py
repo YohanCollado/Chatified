@@ -1,19 +1,10 @@
-from django.shortcuts import render
-
-# Create your views here.
-
 from django.contrib.auth import get_user_model
 
-from .models import (ChatSession, ChatSessionMember, ChatSessionMessage, deserialize_user)
+from .models import (ChatSession, ChatSessionMessage, deserialize_user)
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
-
-# URL's for the chat app
-from django.contrib import admin
-from django.urls import path
-from . import views
 
 class ChatSessionView(APIView):
     # Manage chat sessions
@@ -93,7 +84,7 @@ class ChatSessionMessageView(APIView):
         user = request.user
         chat_session = ChatSession.objects.get(uri=uri)
 
-        ChatSessionMessage.object.create(
+        ChatSessionMessage.objects.create(
             user = user,
             chat_session = chat_session,
             message = message
@@ -105,9 +96,3 @@ class ChatSessionMessageView(APIView):
             'messages': message,
             'user': deserialize_user(user)
         })
-
-urlpatterns = [
-    path('chats/', views.ChatSessionView.as_view()),
-    path('chats/<uri>/', views.ChatSessionView.as_view()),
-    path('chats/<uri>/messages/', views.ChatSessionView.as_view())
-]

@@ -27,11 +27,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-#REST Frameworks
-REST_FRAMEWORKS = {
+# REST Framework
+REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_frameworks.authentication.TokenAuthentication',
-        (...)
+        'rest_framework.authentication.TokenAuthentication',
     ),
 }
 
