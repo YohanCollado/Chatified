@@ -17,11 +17,11 @@ def deserialize_user(user):
         'last_name': user.last_name,
     }
 
-class TrackableDateModel(models.Models):
+class TrackableDateModel(models.Model):
     # abstract model to track the creation and updated date for a model
 
     create_date = models.DateTimeField(auto_now_add=True)
-    update_date = models.DateTimeField(auto_now_add=True)
+    update_date = models.DateTimeField(auto_now=True)
 
     class Meta:
         abstract = True

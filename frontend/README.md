@@ -1,4 +1,4 @@
-# chatire-frontend
+# frontend
 
 > A Vue.js project
 

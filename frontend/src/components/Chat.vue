@@ -96,24 +96,41 @@ const $ = window.jQuery
 export default {
   data () {
     return {
-      sessionStarted: false
+      sessionStarted: false,
+      messages: [
+        {'status': 'SUCCESS',
+          'uri': '040213b14a02451',
+          'message': 'Hello!',
+          'user': {'id': 1, 'username': 'danidee', 'email': 'osaetindaniel@gmail.com', 'first_name': '', 'last_name': ''}},
+
+        {'status': 'SUCCESS',
+          'uri': '040213b14a02451',
+          'message': 'Hey whatsup! i dey',
+          'user': {'id': 2, 'username': 'daniel', 'email': '', 'first_name': '', 'last_name': ''}}
+      ]
     }
   },
 
-  create () {
-    this.username = this.sessionStorage.getItem('username')
+  created () {
+    this.username = sessionStorage.getItem('username')
 
     $.ajaxSetup({
-        beforeSend: function(xhr) {
-            xhr
-        }
+      beforeSend: function (xhr) {
+        xhr.setRequestHeader('Authorization', `JWT $[sessionStorage.getItem('authToken')]`)
+      }
     })
   },
 
   methods: {
     startChatSession () {
-      this.sessionStarted = true
-      this.$router.push('/chats/chat_url')
+      $.post('http://localhost:8000/api/chats/', (data) => {
+        alert('A new session has been created, you will now be redirected. Be patient')
+        this.sessionStarted = true
+        this.$router.push('/chats/chat_url')
+      })
+        .fail((response) => {
+          alert(response.responseText)
+        })
     }
   }
 }
