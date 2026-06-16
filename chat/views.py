@@ -41,7 +41,7 @@ class ChatSessionView(APIView):
         username = request.data['username']
 
         user = User.objects.get(username=username)
-        chat_session = ChatSession.object.get(uri=uri)
+        chat_session = ChatSession.objects.get(uri=uri)
         owner = chat_session.owner
 
         if owner != user:
@@ -53,7 +53,7 @@ class ChatSessionView(APIView):
         owner = deserialize_user(owner)
         members = [
             deserialize_user(chat_session.users)
-            for chat_session in chat_session.member.all()
+            for chat_session in chat_session.members.all()
         ]
 
         members.insert(0, owner)
@@ -67,7 +67,7 @@ class ChatSessionView(APIView):
 class ChatSessionMessageView(APIView):
     # Create/Get chat session messages
 
-    permissions_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
         # return all messages in a chat session
