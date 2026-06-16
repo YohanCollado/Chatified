@@ -1,102 +1,79 @@
 <template>
-    <div class="container">
-        <div class="row">
-            <div class="col-sm-6 offset-3">
-                <div v-if="sessionStarted" id="chat-container" class="cards">
-                    <div
-                    class="card-header text-white text-center font-weight-bold subtle subtle-blue-g">
-                    Share the page URL and start chating
-                    </div>
-
-                    <div class="card-body">
-                        <div class="container chat-body">
-                            <div class="row chat-section">
-                                <div class="col-sm-2">
-                                    <img class="rounded-circle"
-                                    src="http://placehold.it/40/f16000/fff&text=D"/>
-                                </div>
-                                <div class="col-sm-7">
-                                    <span class="card-text speech-bubble speech-bubble-peer"> Hello!
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="row chat-session">
-                                <div class="col-sm-7 offset-3">
-                                    <span class="card-text speech-bubble speech-bubble-user float-right text-white">
-                                        Another chat App?
-                                    </span>
-                                </div>
-                                <div class="sol-sm-2">
-                                    <img class="rounded-circle"
-                                    src="http://placehold.it/40/333333/fff&text=A"/>
-                                </div>
-                            </div>
-                            <div class="row chat-section">
-                                <div class="col-sm-2">
-                                    <p class="card-text speech-bubble speech-bubble-peer">
-                                        This is Chatified. Go ahead and use it!
-                                        This was built using Django and Vue JS
-                                    </p>
-                                </div>
-                            </div>
-                            <div clas="row chat-section">
-                                <div class="col-sm-7 offset-3">
-                                    <p class="card-text speech-bubble speech-bubble-user float-right text-white">
-                                        Let Me work though this thing!
-                                    </p>
-                                </div>
-                                <div class="col-sm-2">
-                                    <img class="rounded-circle"
-                                    src="http://placehold.it/40/333333/fff&text=A"/>
-                                </div>
-                            </div>
-                            <div class="row chat-section">
-                                <div class="col-sm-7 offset-3">
-                                    <p class="card-text speech-bubble speech-bubble-user float-right text-white">
-                                        Invite People
-                                    </p>
-                                </div>
-                                <div class="col-sm-2">
-                                    <img class="rounded-circle"
-                                    src="http://placehold.it/40/333333/fff&text=A"/>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-footer text-muted">
-                        <form>
-                            <div class="row">
-                                <div class="col-sm-10">
-                                    <input type="text" placeholder="Type a message"/>
-                                </div>
-                                <div class="col-sm-2">
-                                    <button class="btn btn-primary">Send</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                <div v-else>
-                    <h3 class="text-center"> Welcome!</h3>
-                    <br/>
-                    <p class="text-center">
-                        To start chating just click the button below, start a new chat and invite friends
-                    </p>
-                    <br/>
-                    <button @click="startChatSession" class="btn btn-primary btn-lg btn-block"> Start Chat</button>
-                    <p v-if="errorMessage" class="text-danger chat-error">{{ errorMessage }}</p>
-                </div>
-            </div>
+  <main class="chat-page">
+    <section class="chat-shell">
+      <header class="chat-header">
+        <div>
+          <p class="chat-label">Chatified</p>
+          <h1>Start chatting</h1>
         </div>
-    </div>
+
+        <div v-if="shareUrl" class="share-panel">
+          <input
+            class="share-input"
+            type="text"
+            :value="shareUrl"
+            readonly
+            aria-label="Shareable chat URL"
+            @focus="$event.target.select()"
+          />
+          <button class="btn secondary-btn" type="button" @click="copyShareUrl">
+            {{ copied ? 'Copied' : 'Copy' }}
+          </button>
+        </div>
+      </header>
+
+      <div class="chat-body">
+        <div v-if="loading" class="empty-state">
+          Loading chat...
+        </div>
+
+        <div v-else-if="messages.length === 0" class="empty-state">
+          No messages yet.
+        </div>
+
+        <div
+          v-else
+          v-for="(message, index) in messages"
+          :key="index"
+          class="message-row"
+          :class="{ 'message-row-user': isCurrentUser(message) }"
+        >
+          <article class="message-bubble">
+            <strong>{{ displayName(message) }}</strong>
+            <p>{{ message.message }}</p>
+          </article>
+        </div>
+      </div>
+
+      <form class="chat-composer" @submit.prevent="sendMessage">
+        <input
+          v-model.trim="newMessage"
+          type="text"
+          placeholder="Type a message"
+          :disabled="!currentChatUri || sending"
+        />
+        <button
+          class="btn primary-btn"
+          type="submit"
+          :disabled="!newMessage || !currentChatUri || sending"
+        >
+          Send
+        </button>
+      </form>
+
+      <p v-if="errorMessage" class="chat-error">{{ errorMessage }}</p>
+    </section>
+  </main>
 </template>
 
 <script>
-function postJson (url, data, authToken) {
+const API_BASE_URL = 'http://localhost:8000/api'
+
+function requestJson (method, url, data, authToken) {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest()
 
-    request.open('POST', url)
+    request.open(method, url)
     request.setRequestHeader('Content-Type', 'application/json')
 
     if (authToken) {
@@ -104,17 +81,23 @@ function postJson (url, data, authToken) {
     }
 
     request.onload = () => {
-      const response = request.responseText ? JSON.parse(request.responseText) : {}
+      let response = {}
+
+      try {
+        response = request.responseText ? JSON.parse(request.responseText) : {}
+      } catch (error) {
+        response = { message: request.responseText || 'The server returned an invalid response.' }
+      }
 
       if (request.status >= 200 && request.status < 300) {
         resolve(response)
       } else {
-        reject(new Error(JSON.stringify(response)))
+        reject(new Error(response.detail || response.message || JSON.stringify(response)))
       }
     }
 
     request.onerror = () => reject(new Error('Unable to reach the server.'))
-    request.send(JSON.stringify(data || {}))
+    request.send(data ? JSON.stringify(data) : null)
   })
 }
 
@@ -129,153 +112,343 @@ function getStoredValue (key) {
 export default {
   data () {
     return {
-      sessionStarted: false,
+      copied: false,
+      currentChatUri: '',
       errorMessage: '',
-      messages: [
-        {'status': 'SUCCESS',
-          'uri': '040213b14a02451',
-          'message': 'Hello!',
-          'user': {'id': 1, 'username': 'danidee', 'email': 'osaetindaniel@gmail.com', 'first_name': '', 'last_name': ''}},
+      loading: true,
+      messages: [],
+      newMessage: '',
+      sending: false,
+      username: ''
+    }
+  },
 
-        {'status': 'SUCCESS',
-          'uri': '040213b14a02451',
-          'message': 'Hey whatsup! i dey',
-          'user': {'id': 2, 'username': 'daniel', 'email': '', 'first_name': '', 'last_name': ''}}
-      ]
+  computed: {
+    shareUrl () {
+      if (!this.currentChatUri) {
+        return ''
+      }
+
+      return `${window.location.origin}/#/chats/${this.currentChatUri}`
     }
   },
 
   created () {
-    this.username = getStoredValue('username')
-    this.sessionStarted = Boolean(this.$route.params.uri)
+    this.username = getStoredValue('username') || ''
+    this.currentChatUri = this.$route.params.uri || ''
+
+    if (this.currentChatUri) {
+      this.loadMessages()
+    } else {
+      this.startChatSession()
+    }
+  },
+
+  watch: {
+    '$route.params.uri' (uri) {
+      this.currentChatUri = uri || ''
+      this.messages = []
+
+      if (this.currentChatUri) {
+        this.loadMessages()
+      }
+    }
   },
 
   methods: {
-    startChatSession () {
+    authToken () {
       const authToken = getStoredValue('authToken')
-      this.errorMessage = ''
 
       if (!authToken) {
-        this.errorMessage = 'Please sign in before starting a chat.'
+        this.errorMessage = 'Please sign in before chatting.'
         this.$router.push('/auth')
+      }
+
+      return authToken
+    },
+
+    copyShareUrl () {
+      if (!this.shareUrl) {
         return
       }
 
-      postJson('http://localhost:8000/api/chats/', {}, authToken)
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(this.shareUrl)
+      }
+
+      this.copied = true
+      window.setTimeout(() => {
+        this.copied = false
+      }, 1500)
+    },
+
+    displayName (message) {
+      return message.user && message.user.username ? message.user.username : 'Guest'
+    },
+
+    isCurrentUser (message) {
+      return message.user && message.user.username === this.username
+    },
+
+    loadMessages () {
+      const authToken = this.authToken()
+
+      if (!authToken) {
+        return
+      }
+
+      this.loading = true
+      this.errorMessage = ''
+
+      requestJson('GET', `${API_BASE_URL}/chats/${this.currentChatUri}/messages/`, null, authToken)
         .then((data) => {
-          this.sessionStarted = true
-          this.$router.push(`/chats/${data.uri}`)
+          this.messages = data.messages || []
         })
         .catch((error) => {
           this.errorMessage = error.message
+        })
+        .then(() => {
+          this.loading = false
+        })
+    },
+
+    sendMessage () {
+      const authToken = this.authToken()
+
+      if (!authToken || !this.newMessage) {
+        return
+      }
+
+      const message = this.newMessage
+      this.sending = true
+      this.errorMessage = ''
+
+      requestJson(
+        'POST',
+        `${API_BASE_URL}/chats/${this.currentChatUri}/messages/`,
+        { message },
+        authToken
+      )
+        .then((data) => {
+          this.messages.push({
+            message: data.messages || message,
+            user: data.user || { username: this.username }
+          })
+          this.newMessage = ''
+        })
+        .catch((error) => {
+          this.errorMessage = error.message
+        })
+        .then(() => {
+          this.sending = false
+        })
+    },
+
+    startChatSession () {
+      const authToken = this.authToken()
+
+      if (!authToken) {
+        return
+      }
+
+      this.loading = true
+      this.errorMessage = ''
+
+      requestJson('POST', `${API_BASE_URL}/chats/`, {}, authToken)
+        .then((data) => {
+          this.currentChatUri = data.uri
+          this.$router.replace(`/chats/${data.uri}`)
+        })
+        .catch((error) => {
+          this.errorMessage = error.message
+        })
+        .then(() => {
+          this.loading = false
         })
     }
   }
 }
 </script>
 
-<!-- Add scoped attribute to limit CSS to this component only-->
-
 <style scoped>
-h1,
-h2 {
-    font-weight: normal;
-}
-ul {
-    list-style-type: none;
-    padding: 0;
-}
-li {
-    display: inline-block;
-    margin: 0 10px;
+.chat-page {
+  min-height: calc(100vh - 60px);
+  padding: 32px 16px;
+  background: #f5f7fb;
 }
 
-.btn {
-    border-radius: 0;
+.chat-shell {
+  display: flex;
+  flex-direction: column;
+  width: min(860px, 100%);
+  min-height: 620px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #dde3ed;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(33, 45, 70, 0.08);
+  text-align: left;
 }
 
-.card-footer input[type="text"]{
-    background-color: #ffffff;
-    color: #444444;
-    padding: 7px;
-    font-size: 13px;
-    border: 2px solid #cccccc;
-    width: 100%;
-    height: 38px;
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border-bottom: 1px solid #e6ebf2;
 }
 
-.card-header a {
-    text-decoration: underline;
+.chat-label {
+  margin: 0 0 4px;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
-.card-body {
-    background-color: #ddd;
+.chat-header h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.share-panel {
+  display: flex;
+  gap: 8px;
+  width: min(420px, 100%);
+}
+
+.share-input,
+.chat-composer input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  color: #172033;
+  background: #ffffff;
+  border: 1px solid #ccd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.share-input {
+  background: #f8fafc;
 }
 
 .chat-body {
-    margin-top: -15px;
-    margin-bottom: -5px;
-    height: 280px;
-    overflow-y: auto;
+  flex: 1;
+  min-height: 400px;
+  padding: 20px;
+  overflow-y: auto;
+  background: #fbfcfe;
 }
 
-.speech-bubble {
-    display: inline-block;
-    position: relative;
-    border-radius: 0.4em;
-    padding: 10px;
-    background-color: #fff;
-    font-size: 14px;
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 320px;
+  color: #697386;
+  font-size: 15px;
 }
 
-.subtle-blue-gradient {
-    background: linear-gradient(45deg, #004bff, #007bff);
+.message-row {
+  display: flex;
+  margin-bottom: 12px;
 }
 
-.speech-bubble-user::after {
-    content: "";
-    position: absolute;
-    right: 4px;
-    top: 10px;
-    width: 0;
-    height: 0;
-    border: 20px solid transparent;
-    border-left-color: #007bff;
-    border-right: 0;
-    border-top: 0;
-    margin-top: -10px;
-    margin-right: -20px;
+.message-row-user {
+  justify-content: flex-end;
 }
 
-.speech-bubble-peer::after {
-    content: "";
-    position: absolute;
-    left: 3px;
-    top: 10px;
-    width: 0;
-    height: 0;
-    border: 20px solid transparent;
-    border-right-color: #ffffff;
-    border-top: 0;
-    border-left: 0;
-    margin-top: -10px;
-    margin-left: -20px;
+.message-bubble {
+  max-width: min(74%, 560px);
+  padding: 10px 12px;
+  color: #172033;
+  background: #eef2f7;
+  border-radius: 8px;
 }
 
-.chat-section:first-child {
-    margin-top: 10px;
+.message-row-user .message-bubble {
+  color: #ffffff;
+  background: #1463ff;
 }
 
-.chat-section {
-    margin-top: 15px;
+.message-bubble strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
 }
 
-.send-section {
-    margin-bottom: -20px;
-    padding-bottom: 10px;
+.message-bubble p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.chat-composer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #e6ebf2;
+}
+
+.btn {
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.primary-btn {
+  color: #ffffff;
+  background: #1463ff;
+}
+
+.secondary-btn {
+  color: #172033;
+  background: #eef2f7;
 }
 
 .chat-error {
-    margin-top: 15px;
+  margin: 0;
+  padding: 0 20px 16px;
+  color: #c62828;
+  font-size: 14px;
+}
+
+@media (max-width: 700px) {
+  .chat-page {
+    padding: 0;
+  }
+
+  .chat-shell {
+    min-height: calc(100vh - 60px);
+    border-width: 0;
+    border-radius: 0;
+  }
+
+  .chat-header,
+  .share-panel,
+  .chat-composer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .message-bubble {
+    max-width: 88%;
+  }
 }
 </style>
