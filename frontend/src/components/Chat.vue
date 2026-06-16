@@ -84,6 +84,7 @@
                     </p>
                     <br/>
                     <button @click="startChatSession" class="btn btn-primary btn-lg btn-block"> Start Chat</button>
+                    <p v-if="errorMessage" class="text-danger chat-error">{{ errorMessage }}</p>
                 </div>
             </div>
         </div>
@@ -91,12 +92,45 @@
 </template>
 
 <script>
-const $ = window.jQuery
+function postJson (url, data, authToken) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest()
+
+    request.open('POST', url)
+    request.setRequestHeader('Content-Type', 'application/json')
+
+    if (authToken) {
+      request.setRequestHeader('Authorization', `Token ${authToken}`)
+    }
+
+    request.onload = () => {
+      const response = request.responseText ? JSON.parse(request.responseText) : {}
+
+      if (request.status >= 200 && request.status < 300) {
+        resolve(response)
+      } else {
+        reject(new Error(JSON.stringify(response)))
+      }
+    }
+
+    request.onerror = () => reject(new Error('Unable to reach the server.'))
+    request.send(JSON.stringify(data || {}))
+  })
+}
+
+function getStoredValue (key) {
+  if (!window.sessionStorage) {
+    return null
+  }
+
+  return window.sessionStorage.getItem(key)
+}
 
 export default {
   data () {
     return {
       sessionStarted: false,
+      errorMessage: '',
       messages: [
         {'status': 'SUCCESS',
           'uri': '040213b14a02451',
@@ -112,29 +146,28 @@ export default {
   },
 
   created () {
-    this.username = sessionStorage.getItem('username')
+    this.username = getStoredValue('username')
     this.sessionStarted = Boolean(this.$route.params.uri)
-
-    $.ajaxSetup({
-      beforeSend: function (xhr) {
-        const authToken = sessionStorage.getItem('authToken')
-
-        if (authToken) {
-          xhr.setRequestHeader('Authorization', `Token ${authToken}`)
-        }
-      }
-    })
   },
 
   methods: {
     startChatSession () {
-      $.post('http://localhost:8000/api/chats/', (data) => {
-        alert('A new session has been created, you will now be redirected. Be patient')
-        this.sessionStarted = true
-        this.$router.push(`/chats/${data.uri}`)
-      })
-        .fail((response) => {
-          alert(response.responseText)
+      const authToken = getStoredValue('authToken')
+      this.errorMessage = ''
+
+      if (!authToken) {
+        this.errorMessage = 'Please sign in before starting a chat.'
+        this.$router.push('/auth')
+        return
+      }
+
+      postJson('http://localhost:8000/api/chats/', {}, authToken)
+        .then((data) => {
+          this.sessionStarted = true
+          this.$router.push(`/chats/${data.uri}`)
+        })
+        .catch((error) => {
+          this.errorMessage = error.message
         })
     }
   }
@@ -240,5 +273,9 @@ li {
 .send-section {
     margin-bottom: -20px;
     padding-bottom: 10px;
+}
+
+.chat-error {
+    margin-top: 15px;
 }
 </style>

@@ -68,7 +68,34 @@
 </template>
 
 <script>
-const $ = window.jQuery
+function postJson (url, data) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest()
+
+    request.open('POST', url)
+    request.setRequestHeader('Content-Type', 'application/json')
+
+    request.onload = () => {
+      const response = request.responseText ? JSON.parse(request.responseText) : {}
+
+      if (request.status >= 200 && request.status < 300) {
+        resolve(response)
+      } else {
+        reject(new Error(JSON.stringify(response)))
+      }
+    }
+
+    request.onerror = () => reject(new Error('Unable to reach the server.'))
+    request.send(JSON.stringify(data || {}))
+  })
+}
+
+function setStoredValue (key, value) {
+  if (window.sessionStorage) {
+    window.sessionStorage.setItem(key, value)
+  }
+}
+
 export default {
   data () {
     return {
@@ -80,13 +107,14 @@ export default {
 
   methods: {
     signUp () {
-      $.post('http://localhost:8000/auth/users/create/',
-        this.$data, (data) => {
+      postJson('http://localhost:8000/auth/users/', this.$data)
+        .then(() => {
           alert('Your account has been created. You will be signed in automatically')
           this.signIn()
-        }).fail((response) => {
-        alert(response.responseText)
-      })
+        })
+        .catch((error) => {
+          alert(error.message)
+        })
     },
 
     signIn () {
@@ -94,14 +122,15 @@ export default {
         username: this.username,
         password: this.password
       }
-      $.post('http://localhost:8000/auth/token/create/',
-        credentials, (data) => {
-          sessionStorage.setItem('authToken', data.auth_token)
-          sessionStorage.setItem('username', this.username)
+
+      postJson('http://localhost:8000/auth/token/login/', credentials)
+        .then((data) => {
+          setStoredValue('authToken', data.auth_token)
+          setStoredValue('username', this.username)
           this.$router.push('/chats')
         })
-        .fail((response) => {
-          alert(response.responseText)
+        .catch((error) => {
+          alert(error.message)
         })
     }
   }
